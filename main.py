@@ -52,10 +52,10 @@ def show_result_screen(user_choice, computer_choice, result, round_num, user_sco
     for countdown in range(3, 0, -1):
         temp_frame = result_frame.copy()
         put_centered_text(temp_frame, f"Next round: {countdown}s", 400, font, 1, (255, 0, 0), 2)
+        cv2.imshow("Rock Paper Scissors", temp_frame)
+        cv2.waitKey(1000)  # Chờ 1 giây trước khi đếm tiếp
 
-    cv2.imshow("Rock Paper Scissors", temp_frame)
-    cv2.waitKey(3000)
-
+    
 def show_final_result(user_score, computer_score):
     # Hiển thị kết quả chung cuộc và hỏi chơi tiếp
     result_frame = np.ones((400, 800, 3), dtype=np.uint8) * 255
@@ -97,16 +97,18 @@ def play_game():
     rounds = 3
     user_score = 0
     computer_score = 0
-    
-    # Vòng lặp 3 ván
+
+    current_choice = "Invalid"
+    last_choice = "Invalid"
+    confirmed_choice = "Invalid"
+    start_time = 0 
+    countdown = 3
+
+        # Vòng lặp 3 ván
     for r in range(rounds):
         print(f"\n--- Ván {r+1} ---")
-        user_choice = "Invalid"
-        
-        start_time = time.time()
-        countdown = 3
-        
         # Vòng lặp đếm ngược và nhận diện
+
         while True:
             ret, frame = cap.read()
             if not ret:
@@ -120,7 +122,9 @@ def play_game():
             if result.multi_hand_landmarks:
                 for hand_landmarks in result.multi_hand_landmarks:
                     mp_draw.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
-                    user_choice = classify_hand_landmarks(hand_landmarks)
+                    current_choice = classify_hand_landmarks(hand_landmarks)
+            else:
+                current_choice = "Invalid"
             
             # Hiển thị thông tin game
             cv2.putText(frame, f"Round {r+1}/3", (10, 40),
@@ -129,7 +133,23 @@ def play_game():
             cv2.putText(frame, f"Detail: {user_score}-{computer_score}", (10, 80),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2)
             
+            # Hiển thị khung hình
+
+            if current_choice == "Invalid" or current_choice == last_choice:
+                cv2.putText(frame, f"Select: {current_choice} (NG)", (10, frame.shape[0]-50),
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                cv2.imshow("Rock Paper Scissors", frame)
+                cv2.waitKey(1)
+                start_time = 0
+                confirmed_choice = "Invalid"
+                continue
+            
+
             # Đếm ngược
+            if current_choice != confirmed_choice:
+                confirmed_choice = current_choice
+                start_time = time.time()
+
             elapsed = int(time.time() - start_time)
             remaining = countdown - elapsed
             if remaining > 0:
@@ -141,7 +161,7 @@ def play_game():
                 break
             
             # Hiển thị lựa chọn hiện tại
-            cv2.putText(frame, f"Select: {user_choice}", (10, frame.shape[0]-50),
+            cv2.putText(frame, f"Select: {current_choice} (OK)", (10, frame.shape[0]-50),
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             
             cv2.imshow("Rock Paper Scissors", frame)
@@ -152,10 +172,16 @@ def play_game():
                 return False  # Thoát game
         
         # Sau khi hết thời gian → máy chọn
-        computer_choice = random.choice(["rock", "scissors", "paper"])
-        result = get_winner(user_choice, computer_choice)
-        
-        print(f"User: {user_choice} | Computer: {computer_choice}")
+        # computer must lose
+        if confirmed_choice == "rock":
+            computer_choice = "scissors"
+        elif confirmed_choice == "scissors":
+            computer_choice = "paper"
+        elif confirmed_choice == "paper":
+            computer_choice = "rock"
+
+        result = get_winner(confirmed_choice, computer_choice)
+        print(f"User: {confirmed_choice} | Computer: {computer_choice}")
         print(result)
         
         # Cập nhật điểm
@@ -165,7 +191,12 @@ def play_game():
             computer_score += 1
         
         # Hiển thị kết quả ván này (3 giây)
-        show_result_screen(user_choice, computer_choice, result, r+1, user_score, computer_score)
+        show_result_screen(confirmed_choice, computer_choice, result, r+1, user_score, computer_score)
+        # Restart lựa chọn
+        last_choice = confirmed_choice
+        current_choice = "Invalid"
+        confirmed_choice = "Invalid"
+        start_time = 0
     
     # Hiển thị kết quả chung cuộc
     show_final_result(user_score, computer_score)
