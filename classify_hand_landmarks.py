@@ -3,7 +3,7 @@ import math
 
 def classify_hand_landmarks(hand_landmarks):
     if hand_landmarks is None or not hasattr(hand_landmarks, 'landmark'):
-        return "undefined"
+        return "Invalid"
     
     # Cấu hình ngưỡng góc cho từng nhóm ngón tay
     angle_thresholds = {
@@ -138,4 +138,4 @@ def classify_hand_landmarks(hand_landmarks):
     elif (other_fingers_flexed == 4 and thumb_avg_angle < 170):
         return "rock"
     else:
-        return "undefined"
+        return "Invalid"

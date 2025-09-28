@@ -11,7 +11,7 @@ def put_centered_text(img, text, y, font, scale, color, thickness):
     cv2.putText(img, text, (x, y), font, scale, color, thickness)
 
 def get_winner(user_choice, computer_choice):
-    if user_choice == "undefined":
+    if user_choice == "Invalid":
         return "Selection is invalid"
     
     if user_choice == computer_choice:
